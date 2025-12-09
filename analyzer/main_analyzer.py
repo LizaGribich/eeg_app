@@ -94,5 +94,9 @@ class EEGApp:
         for b, p in zip(bars, powers):
             ax.text(b.get_x() + b.get_width() / 2, p, f"{p:.4f}",
                     ha="center", va="bottom", color="white")
+        ax.tick_params(colors="white")
+        ax.xaxis.label.set_color("white")
+        ax.yaxis.label.set_color("white")
+        ax.title.set_color("white")
 
         embed_plot(self.scroll_frame, fig)

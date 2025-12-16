@@ -28,7 +28,7 @@ def fig_psd(freqs,psd,df,cpsd,cline):
     return f
 
 
-def fig_segment_stage(t, s, title, color, start_sec=20, duration_sec=10):
+def fig_segment_stage(t, s, title, params_text, color, start_sec=20, duration_sec=10):
     """
     Отображает выбранный 10-секундный сегмент после очередной стадии обработки.
     """
@@ -46,8 +46,17 @@ def fig_segment_stage(t, s, title, color, start_sec=20, duration_sec=10):
     t_seg = t[mask]
     s_seg = s[mask]
 
-    f,a=plt.subplots(figsize=(12,3)); f.patch.set_facecolor("#0d1226"); a.set_facecolor("#0f1530")
+    # Увеличиваем высоту, чтобы текст и график не ужимались
+    f,a=plt.subplots(figsize=(12,4)); f.patch.set_facecolor("#0d1226"); a.set_facecolor("#0f1530")
     a.plot(t_seg,s_seg,color=color)
-    a.set_title(f"{title} ({duration_sec} с начиная с {start_sec} с)", color=color)
+    a.set_title(
+        f"{title} ({duration_sec} с начиная с {start_sec} с)\n{params_text}",
+        color=color,
+        pad=12,
+    )
+    a.set_xlabel("Время, с", color="white")
+    a.set_ylabel("Амплитуда, отн. ед.", color="white")
     a.tick_params(colors="white")
+    # Чуть больше места сверху/снизу под заголовок и подписи осей
+    f.tight_layout(rect=[0, 0.06, 1, 0.92])
     return f

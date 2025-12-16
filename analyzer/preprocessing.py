@@ -8,8 +8,8 @@ def remove_baseline_wander(signal, window=250):
     return signal - s.rolling(window, center=True, min_periods=1).median().values
 
 #очитска от выосов
-def remove_spikes(signal, threshold=5):
-    mean = np.mean(signal);
+def remove_spikes(signal, threshold=3):
+    mean = np.mean(signal)
     std = np.std(signal)
     z = np.abs((signal - mean) / std)
     mask = z < threshold

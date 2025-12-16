@@ -38,12 +38,41 @@ def process_file(path, colors, low_cut, high_cut):
 
     t0 = start_timer()
     start_sec = 20
-    duration_sec = 10
+    duration_sec = 2
+    params_baseline = "Удаление дрейфа: скользящая медиана, окно 250 отсчетов"
+    params_despike = "Удаление выбросов: порог 3σ, интерполяция выбросов"
+    params_band = f"Полосовой Баттерворт 4-го порядка (ФНЧ+ФВЧ): {low_cut:.2f}–{high_cut:.2f} Гц"
     segment_figs = [
-        fig_segment_stage(t, signal, "Сырой сегмент", colors["raw"], start_sec, duration_sec),
-        fig_segment_stage(t, stage_baseline, "После удаления дрейфа", colors["filtered"], start_sec, duration_sec),
-        fig_segment_stage(t, stage_despike, "После удаления выбросов", colors["filtered"], start_sec, duration_sec),
-        fig_segment_stage(t, filtered, "После ФНЧ и ФВЧ", colors["filtered"], start_sec, duration_sec),
+        fig_segment_stage(
+            t, signal, "Сырой сегмент", "Без обработки", colors["raw"], start_sec, duration_sec
+        ),
+        fig_segment_stage(
+            t,
+            stage_baseline,
+            "После удаления дрейфа",
+            params_baseline,
+            colors["filtered"],
+            start_sec,
+            duration_sec,
+        ),
+        fig_segment_stage(
+            t,
+            stage_despike,
+            "После удаления выбросов",
+            params_despike,
+            colors["filtered"],
+            start_sec,
+            duration_sec,
+        ),
+        fig_segment_stage(
+            t,
+            filtered,
+            "После ФНЧ и ФВЧ",
+            params_band,
+            colors["filtered"],
+            start_sec,
+            duration_sec,
+        ),
     ]
 
     figs = segment_figs + [

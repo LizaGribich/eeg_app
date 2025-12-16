@@ -25,7 +25,8 @@ def bandpass_filter(data, low, high, fs, order=4):
     return filtfilt(b, a, data)
 
 
-def preprocess_signal(sig, fs):
+def preprocess_signal(sig, fs, low_cut, high_cut):
     sig = remove_baseline_wander(sig)
     sig = remove_spikes(sig)
-    return bandpass_filter(sig, 1, 40, fs)
+    return bandpass_filter(sig, low_cut, high_cut, fs)
+

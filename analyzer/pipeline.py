@@ -5,7 +5,7 @@ from .analysis import compute_psd, compute_band_power, dominant_freq_in_band
 from .visualization import fig_raw, fig_filtered, fig_alpha, fig_psd
 
 
-def process_file(path, colors):
+def process_file(path, colors, low_cut, high_cut):
     total_start = start_timer()
     #print_memory("Перед загрузкой файла")
 
@@ -15,7 +15,7 @@ def process_file(path, colors):
     #print_memory("После загрузки EEG-файла")
 
     t0 = start_timer()
-    filtered = preprocess_signal(signal, fs)
+    filtered = preprocess_signal(signal, fs, low_cut, high_cut)
     print_time(t0, "Время предобработки")
     #print_memory("После предобработки")
 

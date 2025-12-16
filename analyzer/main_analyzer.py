@@ -12,6 +12,7 @@ class EEGApp:
         self.root = root
         self.root.configure(bg="#0d1226")
         self.loaded_files = []
+        self.order_var = tk.IntVar(value=4)
 
         self.color_sets = [
             {"raw": "#76aaff", "filtered": "#5cffb0", "alpha": "#ff6b6b", "psd": "#ffd166"},
@@ -65,6 +66,21 @@ class EEGApp:
         self.high_cut_var = tk.StringVar(value="40")
         tk.Entry(filter_frame, textvariable=self.high_cut_var, width=6).grid(row=0, column=3, padx=5)
 
+        tk.Label(filter_frame, text="Порядок фильтра", bg="#0d1226", fg="white").grid(row=1, column=0, pady=(5, 0), sticky="w")
+        for i, val in enumerate((1, 2, 3, 4, 5, 6, 8, 10), start=1):
+            tk.Radiobutton(
+                filter_frame,
+                text=str(val),
+                variable=self.order_var,
+                value=val,
+                bg="#0d1226",
+                fg="white",
+                selectcolor="#0d1226",
+                activebackground="#0d1226",
+                activeforeground="white",
+                highlightthickness=0,
+            ).grid(row=1, column=i, padx=2, pady=(5, 0))
+
         tk.Button(
             filter_frame,
             text="ОК",
@@ -117,6 +133,10 @@ class EEGApp:
         except ValueError:
             return
 
+        order = self.order_var.get() or 4
+        if order < 1 or order > 10:
+            order = 4
+
         _, _, fs = load_eeg(self.loaded_files[0])
 
         if low_cut <= 0 or high_cut <= low_cut or high_cut >= fs / 2:
@@ -133,7 +153,7 @@ class EEGApp:
             "Используемые фильтры:",
             "- Удаление дрейфа базовой линии (скользящая медиана)",
             "- Сглаживание выбросов (z-оценка, интерполяция)",
-            f"- Полосовой Баттерворт 4-го порядка (ФНЧ+ФВЧ): {low_cut:.2f}–{high_cut:.2f} Гц",
+            f"- Полосовой Баттерворт {order}-го порядка (ФНЧ+ФВЧ): {low_cut:.2f}–{high_cut:.2f} Гц",
         ]
         tk.Label(
             self.plots_frame,
@@ -157,7 +177,7 @@ class EEGApp:
             ).pack(pady=20)
 
             fname, alpha_power, figs = process_file(
-                path, colors, low_cut, high_cut
+                path, colors, low_cut, high_cut, order
             )
             results.append((fname, alpha_power, colors["alpha"]))
 

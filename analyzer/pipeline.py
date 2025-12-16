@@ -11,7 +11,7 @@ from .visualization import (
 )
 
 
-def process_file(path, colors, low_cut, high_cut):
+def process_file(path, colors, low_cut, high_cut, order):
     total_start = start_timer()
     #print_memory("Перед загрузкой файла")
 
@@ -21,7 +21,9 @@ def process_file(path, colors, low_cut, high_cut):
     #print_memory("После загрузки EEG-файла")
 
     t0 = start_timer()
-    stage_baseline, stage_despike, filtered = preprocess_steps(signal, fs, low_cut, high_cut)
+    stage_baseline, stage_despike, filtered = preprocess_steps(
+        signal, fs, low_cut, high_cut, order=order
+    )
     print_time(t0, "Время предобработки")
     #print_memory("После предобработки")
 
@@ -41,7 +43,7 @@ def process_file(path, colors, low_cut, high_cut):
     duration_sec = 2
     params_baseline = "Удаление дрейфа: скользящая медиана, окно 250 отсчетов"
     params_despike = "Удаление выбросов: порог 3σ, интерполяция выбросов"
-    params_band = f"Полосовой Баттерворт 4-го порядка (ФНЧ+ФВЧ): {low_cut:.2f}–{high_cut:.2f} Гц"
+    params_band = f"Полосовой Баттерворт {order}-го порядка (ФНЧ+ФВЧ): {low_cut:.2f}–{high_cut:.2f} Гц"
     segment_figs = [
         fig_segment_stage(
             t, signal, "Сырой сегмент", "Без обработки", colors["raw"], start_sec, duration_sec
@@ -78,7 +80,7 @@ def process_file(path, colors, low_cut, high_cut):
     figs = segment_figs + [
         fig_raw(t, signal, colors["raw"]),
         fig_filtered(t, filtered, colors["filtered"]),
-        fig_alpha(t, signal, fs, alpha_power, colors["alpha"]),
+        fig_alpha(t, filtered, fs, alpha_power, colors["alpha"]),
         fig_psd(freqs, psd, dom, colors["psd"], colors["filtered"])
     ]
     print_time(t0, "Время построения графиков")

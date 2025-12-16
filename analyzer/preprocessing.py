@@ -26,18 +26,18 @@ def bandpass_filter(data, low, high, fs, order=4):
     return filtfilt(b, a, data)
 
 
-def preprocess_signal(sig, fs, low_cut, high_cut):
+def preprocess_signal(sig, fs, low_cut, high_cut, order=4):
     sig = remove_baseline_wander(sig)
     sig = remove_spikes(sig)
-    return bandpass_filter(sig, low_cut, high_cut, fs)
+    return bandpass_filter(sig, low_cut, high_cut, fs, order=order)
 
 
-def preprocess_steps(sig, fs, low_cut, high_cut):
+def preprocess_steps(sig, fs, low_cut, high_cut, order=4):
     """
     Возвращает промежуточные стадии предобработки для визуализации кумулятивного эффекта.
     """
     stage_baseline = remove_baseline_wander(sig)
     stage_despike = remove_spikes(stage_baseline)
-    stage_band = bandpass_filter(stage_despike, low_cut, high_cut, fs)
+    stage_band = bandpass_filter(stage_despike, low_cut, high_cut, fs, order=order)
     return stage_baseline, stage_despike, stage_band
 

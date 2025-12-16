@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from analyzer.analyzer_tab import EEGAnalyzerTab
 from recorder.recorder_tab import EEGRecorderTab
+import psutil, os
 
 
 class MainApp:
@@ -23,5 +24,9 @@ class MainApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    MainApp(root)
+    app = MainApp(root)
+
+    process = psutil.Process(os.getpid())
+    #print(f"Память после запуска GUI: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+
     root.mainloop()

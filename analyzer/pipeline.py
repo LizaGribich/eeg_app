@@ -1,13 +1,13 @@
 from utils import print_memory, start_timer, print_time
 from .data_loader import load_eeg
-from .preprocessing import preprocess_signal
+from .preprocessing import preprocess_steps
 from .analysis import compute_psd, compute_band_power, dominant_freq_in_band
 from .visualization import (
     fig_raw,
     fig_filtered,
     fig_alpha,
     fig_psd,
-    fig_segment_raw_filtered,
+    fig_segment_stage,
 )
 
 
@@ -21,7 +21,7 @@ def process_file(path, colors, low_cut, high_cut):
     #print_memory("После загрузки EEG-файла")
 
     t0 = start_timer()
-    filtered = preprocess_signal(signal, fs, low_cut, high_cut)
+    stage_baseline, stage_despike, filtered = preprocess_steps(signal, fs, low_cut, high_cut)
     print_time(t0, "Время предобработки")
     #print_memory("После предобработки")
 
@@ -37,18 +37,16 @@ def process_file(path, colors, low_cut, high_cut):
     #print_memory("После вычисления признаков")
 
     t0 = start_timer()
-    segment_fig = fig_segment_raw_filtered(
-        t,
-        signal,
-        filtered,
-        colors["raw"],
-        colors["filtered"],
-        start_sec=20,
-        duration_sec=10,
-    )
+    start_sec = 20
+    duration_sec = 10
+    segment_figs = [
+        fig_segment_stage(t, signal, "Сырой сегмент", colors["raw"], start_sec, duration_sec),
+        fig_segment_stage(t, stage_baseline, "После удаления дрейфа", colors["filtered"], start_sec, duration_sec),
+        fig_segment_stage(t, stage_despike, "После удаления выбросов", colors["filtered"], start_sec, duration_sec),
+        fig_segment_stage(t, filtered, "После ФНЧ и ФВЧ", colors["filtered"], start_sec, duration_sec),
+    ]
 
-    figs = [
-        segment_fig,  # показать первым при каждой итерации
+    figs = segment_figs + [
         fig_raw(t, signal, colors["raw"]),
         fig_filtered(t, filtered, colors["filtered"]),
         fig_alpha(t, signal, fs, alpha_power, colors["alpha"]),

@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import os
 import matplotlib.pyplot as plt
 from .pipeline import process_file
 from .ui_plots import embed_plot
+from .data_loader import load_eeg
 
 
 class EEGApp:
@@ -37,35 +38,33 @@ class EEGApp:
         self.build_ui()
 
     def build_ui(self):
-        top = tk.Frame(self.scroll_frame, bg="#0d1226")
-        top.pack(fill="x", pady=20)
+        # ─── Верхняя панель ─────────────────────────────
+        self.top = tk.Frame(self.scroll_frame, bg="#0d1226")
+        self.top.pack(fill="x", pady=20)
 
-        tk.Button(top, text="Выбрать файлы", bg="#5c63ff", fg="white",
-                  command=self.load_files).pack(side="left", padx=10)
+        tk.Button(
+            self.top, text="Выбрать файлы",
+            bg="#5c63ff", fg="white",
+            command=self.load_files
+        ).pack(side="left", padx=10)
 
-        tk.Button(top, text="Очистить", bg="#ff4d4d", fg="white",
-                  command=self.clear_all).pack(side="left", padx=10)
+        tk.Button(
+            self.top, text="Очистить",
+            bg="#ff4d4d", fg="white",
+            command=self.clear_all
+        ).pack(side="left", padx=10)
 
-        # --- Параметры фильтра ---
-        filter_frame = tk.Frame(top, bg="#0d1226")
+        filter_frame = tk.Frame(self.top, bg="#0d1226")
         filter_frame.pack(side="left", padx=20)
 
-        tk.Label(filter_frame, text="Нижняя Гц",
-                 bg="#0d1226", fg="white").grid(row=0, column=0)
-
+        tk.Label(filter_frame, text="Нижняя Гц", bg="#0d1226", fg="white").grid(row=0, column=0)
         self.low_cut_var = tk.StringVar(value="1")
-        tk.Entry(filter_frame, textvariable=self.low_cut_var,
-                 width=6).grid(row=0, column=1, padx=5)
+        tk.Entry(filter_frame, textvariable=self.low_cut_var, width=6).grid(row=0, column=1, padx=5)
 
-        tk.Label(filter_frame, text="Верхняя Гц",
-                 bg="#0d1226", fg="white").grid(row=0, column=2)
-
+        tk.Label(filter_frame, text="Верхняя Гц", bg="#0d1226", fg="white").grid(row=0, column=2)
         self.high_cut_var = tk.StringVar(value="40")
-        tk.Entry(filter_frame, textvariable=self.high_cut_var,
-                 width=6).grid(row=0, column=3, padx=5)
+        tk.Entry(filter_frame, textvariable=self.high_cut_var, width=6).grid(row=0, column=3, padx=5)
 
-        #self.low_cut_var.trace_add("write", self.on_filter_change)
-        #self.high_cut_var.trace_add("write", self.on_filter_change)
         tk.Button(
             filter_frame,
             text="ОК",
@@ -74,54 +73,67 @@ class EEGApp:
             command=self.apply_filter
         ).grid(row=0, column=4, padx=10)
 
-        self.file_label = tk.Label(self.scroll_frame, text="Файлы не выбраны",
-                                   bg="#0d1226", fg="#5c63ff", font=("Arial", 14))
+        self.file_label = tk.Label(
+            self.scroll_frame,
+            text="Файлы не выбраны",
+            bg="#0d1226",
+            fg="#5c63ff",
+            font=("Arial", 14)
+        )
         self.file_label.pack()
 
-    def on_filter_change(self, *args):
-        # если файлы ещё не выбраны — ничего не делаем
+        # ─── Контейнер ТОЛЬКО для графиков ──────────────
+        self.plots_frame = tk.Frame(self.scroll_frame, bg="#0d1226")
+        self.plots_frame.pack(fill="both", expand=True)
+
+    def clear_plots(self):
+        for child in self.plots_frame.winfo_children():
+            child.destroy()
+
+    def clear_all(self):
+        for child in self.scroll_frame.winfo_children():
+            child.destroy()
+        self.loaded_files = []
+        self.build_ui()
+
+    def load_files(self):
+        files = filedialog.askopenfilenames(
+            filetypes=[("EEG files", "*.csv *.edf *.set *.fdt")]
+        )
+        if not files:
+            return
+
+        self.loaded_files = list(files)
+        self.file_label.config(text="\n".join(os.path.basename(f) for f in files))
+        self.apply_filter()
+
+    def apply_filter(self):
         if not self.loaded_files:
             return
 
-        # 1. безопасно читаем значения (пользователь может ещё печатать)
         try:
             low_cut = float(self.low_cut_var.get())
             high_cut = float(self.high_cut_var.get())
         except ValueError:
             return
 
-        # 2. получаем fs из первого файла
-        try:
-            from .data_loader import load_eeg
-            _, _, fs = load_eeg(self.loaded_files[0])
-        except Exception:
+        _, _, fs = load_eeg(self.loaded_files[0])
+
+        if low_cut <= 0 or high_cut <= low_cut or high_cut >= fs / 2:
+            messagebox.showerror(
+                "Ошибка параметров",
+                f"Допустимо: 0 < low < high < {fs / 2:.1f} Гц"
+            )
             return
 
-        # 3. ЖЁСТКАЯ валидация для scipy butter
-        if low_cut <= 0:
-            return
-        if high_cut <= low_cut:
-            return
-        if high_cut >= fs / 2:
-            return
+        self.clear_plots()
 
-        # 4. очищаем всё, кроме верхней панели
-        for child in self.scroll_frame.winfo_children():
-            child.destroy()
-        self.build_ui()
-
-        # 5. восстанавливаем список файлов
-        self.file_label.config(
-            text="\n".join(os.path.basename(f) for f in self.loaded_files)
-        )
-
-        # 6. пересчитываем и перерисовываем графики
         results = []
         for idx, path in enumerate(self.loaded_files):
             colors = self.color_sets[idx % len(self.color_sets)]
 
             tk.Label(
-                self.scroll_frame,
+                self.plots_frame,
                 text=os.path.basename(path),
                 fg=colors["raw"],
                 bg="#0d1226",
@@ -134,45 +146,7 @@ class EEGApp:
             results.append((fname, alpha_power, colors["alpha"]))
 
             for fig in figs:
-                embed_plot(self.scroll_frame, fig)
-
-        # 7. итоговая гистограмма
-        self.build_summary(results)
-
-    def clear_all(self):
-        for child in self.scroll_frame.winfo_children():
-            child.destroy()
-        self.build_ui()
-
-    def load_files(self):
-        files = filedialog.askopenfilenames(
-            filetypes=[("EEG files", "*.csv *.edf *.set *.fdt")]
-        )
-        if not files:
-            return
-
-        self.file_label.config(text="\n".join(os.path.basename(f) for f in files))
-        self.loaded_files = list(files)
-
-        results = []
-
-        low_cut = float(self.low_cut_var.get())
-        high_cut = float(self.high_cut_var.get())
-
-        for idx, path in enumerate(files):
-            colors = self.color_sets[idx % len(self.color_sets)]
-
-            tk.Label(self.scroll_frame, text=os.path.basename(path),
-                     fg=colors["raw"], bg="#0d1226",
-                     font=("Arial", 18, "bold")).pack(pady=20)
-            fname, alpha_power, figs = process_file(
-                path, colors, low_cut, high_cut
-            )
-
-            results.append((fname, alpha_power, colors["alpha"]))
-
-            for fig in figs:
-                embed_plot(self.scroll_frame, fig)
+                embed_plot(self.plots_frame, fig)
 
         self.build_summary(results)
 
@@ -189,65 +163,14 @@ class EEGApp:
 
         bars = ax.bar(names, powers, color=colors)
         for b, p in zip(bars, powers):
-            ax.text(b.get_x() + b.get_width() / 2, p, f"{p:.4f}",
-                    ha="center", va="bottom", color="white")
+            ax.text(
+                b.get_x() + b.get_width() / 2,
+                p,
+                f"{p:.4f}",
+                ha="center",
+                va="bottom",
+                color="white"
+            )
+
         ax.tick_params(colors="white")
-        ax.xaxis.label.set_color("white")
-        ax.yaxis.label.set_color("white")
-        ax.title.set_color("white")
-
-        embed_plot(self.scroll_frame, fig)
-
-    def apply_filter(self):
-        if not self.loaded_files:
-            return
-
-        try:
-            low_cut = float(self.low_cut_var.get())
-            high_cut = float(self.high_cut_var.get())
-        except ValueError:
-            return
-
-        # fs берём из первого файла
-        from .data_loader import load_eeg
-        _, _, fs = load_eeg(self.loaded_files[0])
-
-        # валидация
-        if low_cut <= 0 or high_cut <= low_cut or high_cut >= fs / 2:
-            from tkinter import messagebox
-            messagebox.showerror(
-                "Ошибка параметров",
-                f"Допустимо: 0 < low < high < {fs / 2:.1f} Гц"
-            )
-            return
-
-        # очистка графиков
-        for child in self.scroll_frame.winfo_children():
-            child.destroy()
-        self.build_ui()
-
-        self.file_label.config(
-            text="\n".join(os.path.basename(f) for f in self.loaded_files)
-        )
-
-        results = []
-        for idx, path in enumerate(self.loaded_files):
-            colors = self.color_sets[idx % len(self.color_sets)]
-
-            tk.Label(
-                self.scroll_frame,
-                text=os.path.basename(path),
-                fg=colors["raw"],
-                bg="#0d1226",
-                font=("Arial", 18, "bold")
-            ).pack(pady=20)
-
-            fname, alpha_power, figs = process_file(
-                path, colors, low_cut, high_cut
-            )
-            results.append((fname, alpha_power, colors["alpha"]))
-
-            for fig in figs:
-                embed_plot(self.scroll_frame, fig)
-
-        self.build_summary(results)
+        embed_plot(self.plots_frame, fig)

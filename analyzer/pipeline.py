@@ -2,7 +2,13 @@ from utils import print_memory, start_timer, print_time
 from .data_loader import load_eeg
 from .preprocessing import preprocess_signal
 from .analysis import compute_psd, compute_band_power, dominant_freq_in_band
-from .visualization import fig_raw, fig_filtered, fig_alpha, fig_psd
+from .visualization import (
+    fig_raw,
+    fig_filtered,
+    fig_alpha,
+    fig_psd,
+    fig_segment_raw_filtered,
+)
 
 
 def process_file(path, colors, low_cut, high_cut):
@@ -31,7 +37,18 @@ def process_file(path, colors, low_cut, high_cut):
     #print_memory("После вычисления признаков")
 
     t0 = start_timer()
+    segment_fig = fig_segment_raw_filtered(
+        t,
+        signal,
+        filtered,
+        colors["raw"],
+        colors["filtered"],
+        start_sec=20,
+        duration_sec=10,
+    )
+
     figs = [
+        segment_fig,  # показать первым при каждой итерации
         fig_raw(t, signal, colors["raw"]),
         fig_filtered(t, filtered, colors["filtered"]),
         fig_alpha(t, signal, fs, alpha_power, colors["alpha"]),

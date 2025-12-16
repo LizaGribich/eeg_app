@@ -128,6 +128,22 @@ class EEGApp:
 
         self.clear_plots()
 
+        # Пояснение по применяемым фильтрам перед обработкой файлов
+        info_lines = [
+            "Используемые фильтры:",
+            "- Удаление дрейфа базовой линии (скользящая медиана)",
+            "- Сглаживание выбросов (z-оценка, интерполяция)",
+            f"- Полосовой Баттерворт 4-го порядка: {low_cut:.2f}–{high_cut:.2f} Гц",
+        ]
+        tk.Label(
+            self.plots_frame,
+            text="\n".join(info_lines),
+            bg="#0d1226",
+            fg="white",
+            font=("Arial", 12, "italic"),
+            justify="left",
+        ).pack(pady=(5, 10), anchor="w")
+
         results = []
         for idx, path in enumerate(self.loaded_files):
             colors = self.color_sets[idx % len(self.color_sets)]
@@ -156,6 +172,14 @@ class EEGApp:
         names = [os.path.basename(x[0]) for x in results]
         powers = [x[1] for x in results]
         colors = [x[2] for x in results]
+
+        tk.Label(
+            self.plots_frame,
+            text="Сравнение мощностей в альфа-диапазоне",
+            bg="#0d1226",
+            fg="white",
+            font=("Arial", 14, "bold"),
+        ).pack(pady=(10, 0))
 
         fig, ax = plt.subplots(figsize=(10, 4))
         fig.patch.set_facecolor("#0d1226")
